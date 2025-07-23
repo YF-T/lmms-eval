@@ -213,8 +213,17 @@ class VLLM(lmms):
             sampling_params = SamplingParams(**params)
 
             if self.chat_template is not None:
-                with open(self.chat_template, "r") as f:
-                    chat_template = f.read()
+                # Check if chat_template is a file path or a template string
+                if os.path.isfile(self.chat_template):
+                    # It's a valid file path, read the template from file
+                    with open(self.chat_template, "r") as f:
+                        chat_template = f.read()
+                elif "/" in self.chat_template or "\\" in self.chat_template or self.chat_template.endswith((".jinja", ".j2", ".template")):
+                    # It looks like a file path but the file doesn't exist
+                    raise FileNotFoundError(f"Chat template file not found: {self.chat_template}")
+                else:
+                    # It's a template string, use it directly
+                    chat_template = self.chat_template
                 response = self.client.chat(sampling_params=sampling_params, messages=batched_messages, chat_template=chat_template)
             else:
                 response = self.client.chat(sampling_params=sampling_params, messages=batched_messages)
